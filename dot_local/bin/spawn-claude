@@ -12,11 +12,15 @@
 #                   local main/master, else current HEAD)
 #   --setup <cmd>   run <cmd> in the pane before claude (e.g. "pnpm install") —
 #                   a fresh worktree has no node_modules
+#   --model <ref>   model for the spawned session (default: sonnet). Spawned
+#                   workers default to Sonnet — these tabs do bounded, well-specified
+#                   work where Sonnet is the right tool ("Sonnet builds"). Override
+#                   per-call with --model opus, or globally with the MODEL env var.
 #
 # Default: makes a worktree at <repo-parent>/<repo>.wt/<name> on a new branch
 # wt/<name>, OUTSIDE the repo tree (so whole-tree commands don't walk it), then
-# runs `claude --dangerously-skip-permissions "<prompt>"` there in a new, named
-# zellij tab. Only ever CREATES a zellij tab (never closes one).
+# runs `claude --dangerously-skip-permissions --model sonnet "<prompt>"` there in a
+# new, named zellij tab. Only ever CREATES a zellij tab (never closes one).
 #
 # Windows notes: native zellij execs bare "bash" off the Windows PATH, where the
 # WSL launcher (C:\Windows\System32\bash.exe) wins — so we pin THIS shell's
@@ -24,12 +28,13 @@
 # file so no shell/KDL quoting can mangle it.
 set -euo pipefail
 
-here=0; base=""; setup=""; dry=0
+here=0; base=""; setup=""; dry=0; model="${MODEL:-sonnet}"
 while [[ "${1:-}" == --* ]]; do
   case "$1" in
     --here) here=1; shift;;
     --base) base="${2:?--base needs a ref}"; shift 2;;
     --setup) setup="${2:?--setup needs a command}"; shift 2;;
+    --model) model="${2:?--model needs a ref}"; shift 2;;
     --dry-run) dry=1; shift;;
     --) shift; break;;
     *) echo "spawn-claude: unknown option $1" >&2; exit 2;;
@@ -102,7 +107,7 @@ layout {
         plugin location="zellij:tab-bar"
     }
     pane command="$bash_native" cwd="$workdir_native" {
-        args "-lc" "${pre}claude --dangerously-skip-permissions \"\$(cat '$pf_native')\"; exec \"$bash_native\" -i"
+        args "-lc" "${pre}claude --dangerously-skip-permissions --model $model \"\$(cat '$pf_native')\"; exec \"$bash_native\" -i"
     }
     pane size=1 borderless=true {
         plugin location="zellij:status-bar"
@@ -118,5 +123,5 @@ if [[ $dry -eq 1 ]]; then
 fi
 
 zellij action new-tab --name "$name" --layout "$(to_native "$layout")"
-echo "spawn-claude: launched tab '$name' → claude in $workdir"
+echo "spawn-claude: launched tab '$name' → claude --model $model in $workdir"
 rm -f "$layout"
