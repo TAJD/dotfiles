@@ -5,7 +5,28 @@ layout {
         }
         children
         pane size=1 borderless=true {
-            plugin location="zellij:status-bar"
+            plugin location="file:C:/Users/tajdi/AppData/Roaming/zellij/config/plugins/zjstatus.wasm" {
+                format_left   "{mode}"
+                format_center ""
+                format_right  "{datetime}"
+                format_space  ""
+
+                mode_normal        "#[bg=#89B4FA,fg=#1E1E2E,bold] NORMAL "
+                mode_locked        "#[bg=#F38BA8,fg=#1E1E2E,bold] LOCKED "
+                mode_pane          "#[bg=#A6E3A1,fg=#1E1E2E,bold] PANE "
+                mode_tab           "#[bg=#A6E3A1,fg=#1E1E2E,bold] TAB "
+                mode_scroll        "#[bg=#F9E2AF,fg=#1E1E2E,bold] SCROLL "
+                mode_resize        "#[bg=#FAB387,fg=#1E1E2E,bold] RESIZE "
+                mode_move          "#[bg=#CBA6F7,fg=#1E1E2E,bold] MOVE "
+                mode_search        "#[bg=#F9E2AF,fg=#1E1E2E,bold] SEARCH "
+                mode_session       "#[bg=#CBA6F7,fg=#1E1E2E,bold] SESSION "
+                mode_tmux          "#[bg=#F5C2E7,fg=#1E1E2E,bold] TMUX "
+                mode_renametab     "#[bg=#A6E3A1,fg=#1E1E2E,bold] RENAME TAB "
+                mode_renamepane    "#[bg=#A6E3A1,fg=#1E1E2E,bold] RENAME PANE "
+
+                datetime        "#[fg=#6C7086,bold] {format} "
+                datetime_format "%d %b %Y  %H:%M"
+            }
         }
     }
     tab {
