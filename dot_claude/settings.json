@@ -48,7 +48,6 @@
       "Bash(cass:*)",
       "Bash(rtk:*)",
       "Bash(git:*)",
-      "Bash(git -C:*)",
       "Bash(gh:*)",
       "Bash(bd:*)",
       "Bash(bv:*)",
