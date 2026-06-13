@@ -1,0 +1,122 @@
+#!/usr/bin/env bash
+# spawn-claude — launch a hands-off Claude Code workstream in a new zellij tab,
+# in its OWN git worktree by default, so parallel claudes never fight over a
+# working tree / branch.
+#
+# Usage:
+#   spawn-claude [options] <name> <repo-dir> <prompt...>
+#
+# Options (must precede the positional args):
+#   --here          run in <repo-dir> itself, no worktree (the old behaviour)
+#   --base <ref>    branch the worktree off <ref> (default: origin/main, else
+#                   local main/master, else current HEAD)
+#   --setup <cmd>   run <cmd> in the pane before claude (e.g. "pnpm install") —
+#                   a fresh worktree has no node_modules
+#
+# Default: makes a worktree at <repo-parent>/<repo>.wt/<name> on a new branch
+# wt/<name>, OUTSIDE the repo tree (so whole-tree commands don't walk it), then
+# runs `claude --dangerously-skip-permissions "<prompt>"` there in a new, named
+# zellij tab. Only ever CREATES a zellij tab (never closes one).
+#
+# Windows notes: native zellij execs bare "bash" off the Windows PATH, where the
+# WSL launcher (C:\Windows\System32\bash.exe) wins — so we pin THIS shell's
+# Git-bash absolute path. All paths are cygpath -m'd; the prompt rides in a temp
+# file so no shell/KDL quoting can mangle it.
+set -euo pipefail
+
+here=0; base=""; setup=""; dry=0
+while [[ "${1:-}" == --* ]]; do
+  case "$1" in
+    --here) here=1; shift;;
+    --base) base="${2:?--base needs a ref}"; shift 2;;
+    --setup) setup="${2:?--setup needs a command}"; shift 2;;
+    --dry-run) dry=1; shift;;
+    --) shift; break;;
+    *) echo "spawn-claude: unknown option $1" >&2; exit 2;;
+  esac
+done
+
+if [[ $# -lt 3 ]]; then
+  echo "usage: spawn-claude [--here] [--base <ref>] [--setup <cmd>] <name> <repo-dir> <prompt...>" >&2
+  exit 2
+fi
+name="$1"; repo="$2"; shift 2; prompt="$*"
+
+command -v zellij >/dev/null || { echo "spawn-claude: zellij not found" >&2; exit 1; }
+command -v claude >/dev/null || { echo "spawn-claude: claude not found" >&2; exit 1; }
+[[ -n "${ZELLIJ:-}" ]] || { echo "spawn-claude: not inside a zellij session" >&2; exit 1; }
+[[ -d "$repo" ]] || { echo "spawn-claude: repo dir not found: $repo" >&2; exit 1; }
+
+# cygpath -m gives drive + forward slashes: a valid Windows path that is also
+# KDL-safe (backslashes are escape chars in KDL strings). No-op off Windows.
+to_native() { command -v cygpath >/dev/null && cygpath -m "$1" || printf '%s' "$1"; }
+bash_native=$(to_native "$(command -v bash)")
+
+# slug for branch + dir names
+slug=$(printf '%s' "$name" | tr -c 'A-Za-z0-9._-' '-' | sed 's/--*/-/g; s/^-//; s/-$//')
+[[ -n "$slug" ]] || slug="claude"
+
+if [[ $here -eq 1 ]]; then
+  workdir="$repo"
+else
+  git -C "$repo" rev-parse --is-inside-work-tree >/dev/null 2>&1 \
+    || { echo "spawn-claude: $repo is not a git repo (use --here to run there directly)" >&2; exit 1; }
+
+  if [[ -z "$base" ]]; then
+    if   git -C "$repo" show-ref -q --verify refs/heads/main;   then base=main
+    elif git -C "$repo" show-ref -q --verify refs/heads/master; then base=master
+    else base=$(git -C "$repo" rev-parse --abbrev-ref HEAD); fi
+  fi
+  [[ $dry -eq 0 ]] && { git -C "$repo" fetch -q origin "$base" 2>/dev/null || true; }
+  start="$base"
+  git -C "$repo" show-ref -q --verify "refs/remotes/origin/$base" && start="origin/$base"
+
+  repo_abs=$(cd "$repo" && pwd)
+  parent=$(dirname "$repo_abs"); bn=$(basename "$repo_abs")
+  branch="wt/$slug"; workdir="$parent/$bn.wt/$slug"
+  if git -C "$repo" show-ref -q --verify "refs/heads/$branch" || [[ -e "$workdir" ]]; then
+    sfx=$(date +%H%M%S); branch="wt/$slug-$sfx"; workdir="$parent/$bn.wt/$slug-$sfx"
+  fi
+
+  if [[ $dry -eq 1 ]]; then
+    echo "[dry-run] git -C $repo worktree add -b $branch $workdir $start" >&2
+  else
+    echo "spawn-claude: creating worktree $workdir on $branch (from $start)" >&2
+    git -C "$repo" worktree add -b "$branch" "$workdir" "$start" >&2
+  fi
+fi
+
+workdir_native=$(to_native "$workdir")
+promptfile=$(mktemp --suffix=.prompt); printf '%s' "$prompt" > "$promptfile"
+pf_native=$(to_native "$promptfile")
+pre=""; [[ -n "$setup" ]] && pre="$setup; "
+
+# IMPORTANT: include the tab-bar + status-bar plugin panes, exactly as zellij's
+# default new_tab_template does. A bare `layout { pane … }` makes a tab with NO
+# tab bar — focus lands there on attach and the whole tab strip vanishes from
+# view (the other tabs are fine, just undrawn). These two panes restore chrome.
+layout=$(mktemp --suffix=.kdl)
+cat > "$layout" <<KDL
+layout {
+    pane size=1 borderless=true {
+        plugin location="zellij:tab-bar"
+    }
+    pane command="$bash_native" cwd="$workdir_native" {
+        args "-lc" "${pre}claude --dangerously-skip-permissions \"\$(cat '$pf_native')\"; exec \"$bash_native\" -i"
+    }
+    pane size=1 borderless=true {
+        plugin location="zellij:status-bar"
+    }
+}
+KDL
+
+if [[ $dry -eq 1 ]]; then
+  echo "[dry-run] zellij action new-tab --name '$name' --layout <generated>" >&2
+  echo "[dry-run] --- layout ---" >&2; cat "$layout" >&2
+  rm -f "$layout" "$promptfile"
+  exit 0
+fi
+
+zellij action new-tab --name "$name" --layout "$(to_native "$layout")"
+echo "spawn-claude: launched tab '$name' → claude in $workdir"
+rm -f "$layout"

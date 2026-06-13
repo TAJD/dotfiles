@@ -1,0 +1,361 @@
+{
+  "permissions": {
+    "allow": [
+      "WebSearch",
+      "WebFetch(domain:developers.cloudflare.com)",
+      "WebFetch(domain:hex.pm)",
+      "WebFetch(domain:preview.hex.pm)",
+      "WebFetch(domain:hexdocs.pm)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:deepwiki.com)",
+      "WebFetch(domain:alembic.com.au)",
+      "WebFetch(domain:docs.stripe.com)",
+      "WebFetch(domain:www.kgajera.com)",
+      "WebFetch(domain:scalar.com)",
+      "WebFetch(domain:fly.io)",
+      "WebFetch(domain:fruizg0302.github.io)",
+      "WebFetch(domain:hub.docker.com)",
+      "WebFetch(domain:kamal-deploy.org)",
+      "WebFetch(domain:elixirforum.com)",
+
+      "mcp__cloudflare-docs__search_cloudflare_documentation",
+      "mcp__rovikore-local-mcp__list_generators",
+      "mcp__playwright__browser_navigate",
+      "mcp__playwright__browser_fill_form",
+      "mcp__playwright__browser_click",
+      "mcp__playwright__browser_take_screenshot",
+      "mcp__playwright__browser_close",
+      "mcp__playwright__browser_handle_dialog",
+      "mcp__playwright__browser_snapshot",
+      "mcp__playwright__browser_type",
+      "mcp__playwright__browser_file_upload",
+      "mcp__playwright__browser_wait_for",
+      "mcp__playwright__browser_evaluate",
+      "mcp__playwright__browser_console_messages",
+      "mcp__playwright__browser_select_option",
+      "mcp__playwright__browser_tabs",
+      "mcp__playwright__browser_run_code",
+      "Skill(playwright-cli)",
+
+      "Bash(ls:*)",
+      "Bash(dir:*)",
+      "Bash(cat:*)",
+      "Bash(head:*)",
+      "Bash(tail:*)",
+      "Bash(grep:*)",
+      "Bash(rg:*)",
+      "Bash(find:*)",
+      "Bash(where:*)",
+      "Bash(which:*)",
+      "Bash(tree:*)",
+      "Bash(pwd:*)",
+      "Bash(cd:*)",
+      "Bash(echo:*)",
+      "Bash(wc:*)",
+      "Bash(jq:*)",
+      "Bash(ast-grep:*)",
+      "Bash(sg:*)",
+      "Bash(cass:*)",
+      "Bash(rtk:*)",
+
+      "Bash(git:*)",
+      "Bash(git -C:*)",
+      "Bash(gh:*)",
+
+      "Bash(bd:*)",
+      "Bash(bv:*)",
+      "Bash(BEADS_NO_DAEMON=1 bd:*)",
+
+      "Bash(mix:*)",
+      "Bash(elixir:*)",
+      "Bash(iex:*)",
+      "Bash(iex.bat -S mix:*)",
+      "Bash(MIX_ENV=test mix:*)",
+      "Bash(MIX_ENV=dev mix:*)",
+      "Bash(MIX_ENV=test psql:*)",
+      "Bash(CC=C:/Users/tajdi/scoop/apps/gcc/current/bin/gcc.exe mix:*)",
+      "Bash(CC=C:/Users/tajdi/scoop/apps/gcc/current/bin/gcc.exe MIX_ENV=test mix:*)",
+      "Bash(MIX_ENV=test CC=C:/Users/tajdi/scoop/apps/gcc/current/bin/gcc.exe mix:*)",
+      "Bash(BEADS_NO_DAEMON=1 CC=\"C:/Users/tajdi/scoop/apps/gcc/current/bin/gcc.exe\" mix:*)",
+
+      "Bash(pnpm:*)",
+      "Bash(npm:*)",
+      "Bash(npx:*)",
+      "Bash(node:*)",
+      "Bash(wrangler:*)",
+
+      "Bash(python:*)",
+      "Bash(python3:*)",
+      "Bash(uv:*)",
+      "Bash(uvx:*)",
+      "Bash(pytest:*)",
+
+      "Bash(docker:*)",
+      "Bash(docker-compose:*)",
+      "Bash(MSYS_NO_PATHCONV=1 docker run:*)",
+
+      "Bash(psql:*)",
+      "Bash(pg_isready:*)",
+      "Bash(pg_ctl:*)",
+      "Bash(net start:*)",
+      "Bash(sc query:*)",
+
+      "Bash(kamal:*)",
+      "Bash(hcloud:*)",
+      "Bash(gcloud:*)",
+      "Bash(scoop:*)",
+      "Bash(gem:*)",
+      "Bash(ssh:*)",
+      "Bash(scp:*)",
+      "Bash(ssh-keygen:*)",
+      "Bash(actionlint:*)",
+      "Bash(bash scripts/ssh-prod.sh:*)",
+      "Bash(scripts/ssh-prod.sh:*)",
+      "Bash(./scripts/deploy.sh:*)",
+
+      "Bash(gcc:*)",
+      "Bash(make:*)",
+      "Bash(openssl rand:*)",
+
+      "Bash(mkdir:*)",
+      "Bash(cp:*)",
+      "Bash(mv:*)",
+      "Bash(rm:*)",
+      "Bash(chmod:*)",
+      "Bash(tee:*)",
+      "Bash(tar:*)",
+      "Bash(xargs:*)",
+      "Bash(curl:*)",
+      "Bash(wget:*)",
+      "Bash(timeout:*)",
+      "Bash(taskkill:*)",
+      "Bash(tasklist:*)",
+      "Bash(pkill:*)",
+      "Bash(nslookup:*)",
+      "Bash(dig:*)",
+      "Bash(playwright-cli:*)",
+
+      "Bash(bash:*)",
+      "Bash(sh:*)",
+      "Bash(cmd:*)",
+      "Bash(cmd.exe:*)",
+      "Bash(powershell:*)",
+      "Bash(powershell.exe:*)",
+      "Bash(pwsh:*)"
+    ],
+    "deny": [],
+    "ask": [],
+    "defaultMode": "acceptEdits"
+  },
+  "hooks": {
+    "PreCompact": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bd prime"
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bd prime"
+          }
+        ]
+      },
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ~/.claude/scripts/zellaude-hook.sh",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ~/.claude/scripts/zellaude-hook.sh",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "rtk hook claude"
+          }
+        ]
+      },
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ~/.claude/scripts/zellaude-hook.sh",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "uv run python \"$HOME/.claude/skills/record-frustration/scripts/frustration_detector.py\""
+          }
+        ]
+      },
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ~/.claude/scripts/zellaude-hook.sh",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "PostToolUseFailure": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ~/.claude/scripts/zellaude-hook.sh",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ~/.claude/scripts/zellaude-hook.sh",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "PermissionRequest": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ~/.claude/scripts/zellaude-hook.sh",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "Notification": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ~/.claude/scripts/zellaude-hook.sh",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "printf '\\a'"
+          }
+        ]
+      },
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ~/.claude/scripts/zellaude-hook.sh",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "SubagentStop": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ~/.claude/scripts/zellaude-hook.sh",
+            "timeout": 5
+          }
+        ]
+      }
+    ]
+  },
+  "statusLine": {
+    "type": "command",
+    "command": "bash ~/.claude/statusline.sh"
+  },
+  "enabledPlugins": {
+    "superpowers@superpowers-marketplace": true,
+    "commit-commands@claude-plugins-official": true,
+    "economist-style@economist-style-plugins": true,
+    "claude-md-management@claude-plugins-official": true,
+    "claude-code-setup@claude-plugins-official": true,
+    "elixir-phoenix@oliver-kriska": true,
+    "mix-format@claude-code-elixir": true,
+    "mix-compile@claude-code-elixir": true,
+    "mix-credo@claude-code-elixir": true,
+    "elixir@claude-code-elixir": true,
+    "vercel@claude-plugins-official": true,
+    "frontend-design@claude-plugins-official": true,
+    "rust-analyzer-lsp@claude-plugins-official": true,
+    "stripe@claude-plugins-official": true,
+    "security-guidance@claude-plugins-official": true,
+    "42crunch-api-security-testing@claude-plugins-official": true
+  },
+  "extraKnownMarketplaces": {
+    "oliver-kriska": {
+      "source": {
+        "source": "github",
+        "repo": "oliver-kriska/claude-elixir-phoenix"
+      }
+    },
+    "claude-code-elixir": {
+      "source": {
+        "source": "github",
+        "repo": "georgeguimaraes/claude-code-elixir"
+      }
+    }
+  },
+  "effortLevel": "high",
+  "autoCompactWindow": 300000,
+  "skipDangerousModePermissionPrompt": true,
+  "preferredNotifChannel": "terminal_bell",
+  "remoteControlAtStartup": true,
+  "agentPushNotifEnabled": true
+}

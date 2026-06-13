@@ -1,0 +1,5 @@
+# Generated into ~/.config/chezmoi/chezmoi.toml on `chezmoi init`.
+# Keeps the secret gate (hard-fail on `chezmoi add` of a file containing a
+# detected secret) consistent across every machine this repo is cloned to.
+[add]
+    secrets = "error"

@@ -1,0 +1,46 @@
+# === Repo docs (keep in git, never apply to $HOME) ===
+README.md
+
+# === Secrets — never manage ===
+.claude/.credentials.json
+.claude/settings.local.json
+.claude/.last-update-result.json
+.claude/mcp-needs-auth-cache.json
+
+# === Runtime state / caches / history ===
+.claude/history.jsonl
+.claude/daemon.log
+.claude/.last-cleanup
+.claude/*.db
+.claude/.agent_frustrations.db
+.claude/frustration_*.json*
+.claude/stats-cache.json
+.claude/skill-metrics
+.claude/cache
+.claude/paste-cache
+.claude/sessions
+.claude/session-env
+.claude/shell-snapshots
+.claude/projects
+.claude/daemon
+.claude/jobs
+.claude/tasks
+.claude/plans
+.claude/reviews
+.claude/research
+.claude/audit
+.claude/security
+.claude/backups
+.claude/file-history
+.claude/tmp
+.claude/ide
+.claude/plugins
+
+# === Junk / logs / backups ===
+.claude/scripts/.update-toolchain-logs
+**/*.bak
+**/*.bak.[0-9]
+**/.git
+
+# === Zellij runtime ===
+AppData/Roaming/zellij/config/*.bak*
