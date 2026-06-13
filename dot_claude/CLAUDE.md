@@ -58,6 +58,20 @@ For anything non-trivial, write the
 continuation prompt to a file and pass `@<abs-path>` (avoids cmd quoting issues).
 New zellij tabs are **cmd.exe**, not bash/pwsh — never chain with `;` there.
 
+**Spawning parallel workers, each in its own git worktree** (independent tasks that
+would otherwise fight over the working tree): use `spawn-claude` (`~/.local/bin/`)
+
+```bash
+spawn-claude [--model <ref>] [--here] [--base <ref>] [--setup <cmd>] <name> <repo-dir> <prompt...>
+```
+
+It creates a worktree at `<repo>.wt/<name>` on branch `wt/<name>` (outside the repo
+tree), then launches a worker there in a new tab. Parallel `spawn-claude`s are safe
+because each gets its own worktree + branch. Defaults to `--model sonnet` (override
+`--model opus`); `--here` runs in the repo with no worktree; `--setup "<cmd>"` runs
+before claude (e.g. `pnpm install` for a fresh worktree). Full reference for all three
+zellij helpers: `~/.claude/docs/spawning-sessions.md`.
+
 ## Conversation History Search (cass)
 
 `cass` (at `~/.local/bin/cass`) is a unified search across coding-agent transcripts (Claude Code, Codex, Gemini, etc.) on this machine. Use it whenever the user references prior work you don't remember ("what was I doing yesterday?", "what changes were you validating?", "find the session where we fixed X").
