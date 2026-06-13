@@ -27,7 +27,6 @@
       "mcp__playwright__browser_select_option",
       "mcp__playwright__browser_tabs",
       "mcp__playwright__browser_run_code",
-      "Skill(playwright-cli)",
       "Bash(ls:*)",
       "Bash(dir:*)",
       "Bash(cat:*)",
