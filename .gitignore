@@ -1,0 +1,6 @@
+# Stray runtime files — the source dir is occasionally a CWD, and `git add -A`
+# would otherwise grab anything dropped here. Never commit runtime junk.
+.agent_frustrations.db
+*.db
+frustration_*.json*
+*.log

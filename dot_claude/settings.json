@@ -11,7 +11,6 @@
       "WebFetch(domain:docs.stripe.com)",
       "WebFetch(domain:hub.docker.com)",
       "WebFetch(domain:elixirforum.com)",
-
       "mcp__cloudflare-docs__search_cloudflare_documentation",
       "mcp__playwright__browser_navigate",
       "mcp__playwright__browser_fill_form",
@@ -29,7 +28,6 @@
       "mcp__playwright__browser_tabs",
       "mcp__playwright__browser_run_code",
       "Skill(playwright-cli)",
-
       "Bash(ls:*)",
       "Bash(dir:*)",
       "Bash(cat:*)",
@@ -50,54 +48,44 @@
       "Bash(sg:*)",
       "Bash(cass:*)",
       "Bash(rtk:*)",
-
       "Bash(git:*)",
       "Bash(git -C:*)",
       "Bash(gh:*)",
-
       "Bash(bd:*)",
       "Bash(bv:*)",
       "Bash(BEADS_NO_DAEMON=1 bd:*)",
-
       "Bash(mix:*)",
       "Bash(elixir:*)",
       "Bash(iex:*)",
       "Bash(iex.bat -S mix:*)",
       "Bash(MIX_ENV=test mix:*)",
       "Bash(MIX_ENV=dev mix:*)",
-
       "Bash(pnpm:*)",
       "Bash(npm:*)",
       "Bash(npx:*)",
       "Bash(node:*)",
       "Bash(wrangler:*)",
-
       "Bash(python:*)",
       "Bash(python3:*)",
       "Bash(uv:*)",
       "Bash(uvx:*)",
       "Bash(pytest:*)",
-
       "Bash(docker:*)",
       "Bash(docker-compose:*)",
-
       "Bash(psql:*)",
       "Bash(pg_isready:*)",
       "Bash(pg_ctl:*)",
       "Bash(net start:*)",
       "Bash(sc query:*)",
-
       "Bash(scoop:*)",
       "Bash(gem:*)",
       "Bash(ssh:*)",
       "Bash(scp:*)",
       "Bash(ssh-keygen:*)",
       "Bash(actionlint:*)",
-
       "Bash(gcc:*)",
       "Bash(make:*)",
       "Bash(openssl rand:*)",
-
       "Bash(mkdir:*)",
       "Bash(cp:*)",
       "Bash(mv:*)",
@@ -115,7 +103,6 @@
       "Bash(nslookup:*)",
       "Bash(dig:*)",
       "Bash(playwright-cli:*)",
-
       "Bash(bash:*)",
       "Bash(sh:*)",
       "Bash(cmd:*)",
@@ -195,15 +182,6 @@
       }
     ],
     "PostToolUse": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "uv run python \"$HOME/.claude/skills/record-frustration/scripts/frustration_detector.py\""
-          }
-        ]
-      },
       {
         "matcher": "",
         "hooks": [
@@ -338,5 +316,6 @@
   "skipDangerousModePermissionPrompt": true,
   "preferredNotifChannel": "terminal_bell",
   "remoteControlAtStartup": true,
-  "agentPushNotifEnabled": true
+  "agentPushNotifEnabled": true,
+  "model": "sonnet"
 }
