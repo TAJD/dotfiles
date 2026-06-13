@@ -1,6 +1,9 @@
 # === Repo docs (keep in git, never apply to $HOME) ===
 README.md
 
+# === Local-only project context (never publish) ===
+.claude/PROJECTS.md
+
 # === Secrets — never manage ===
 .claude/.credentials.json
 .claude/settings.local.json

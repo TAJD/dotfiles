@@ -12,8 +12,8 @@ only when reasoning quality changes the outcome.
 - **Delegate bounded implementation work to Sonnet** via the Task tool with
   `model: "sonnet"` (or a `model: sonnet` agent like `sonnet-builder`). Trigger when ALL of
   these hold: spec is unambiguous, scope is ~1–2 files / ~50–300 lines, no design choices
-  remain, verification is mechanical (build/test/lint). Concrete examples: writing a new
-  cofferdam check from a fully-specified bead, adding a formatter from a schema, porting a
+  remain, verification is mechanical (build/test/lint). Concrete examples: implementing a
+  fully-specified check from a ticket, adding a formatter from a schema, porting a
   function between two known signatures, generating a fixture suite. **Anti-trigger**:
   anything that needs back-and-forth with me about design, anything where the failure mode
   is "wrong abstraction" rather than "wrong syntax."
@@ -88,8 +88,8 @@ cass sessions --current --json --limit 5
 cass search "playwright" --week --robot --limit 10
 
 # Filter by agent or workspace
-cass search "hyrox" --agent "claude-code" --robot
-cass search "bug" --workspace /c/Users/tajdi/bestefforttools --robot
+cass search "auth refactor" --agent "claude-code" --robot
+cass search "bug" --workspace /c/Users/<you>/<project> --robot
 
 # Aggregate (massive token savings for overview queries)
 cass search "*" --json --aggregate agent --week
@@ -173,5 +173,13 @@ bv --robot-schema                          # JSON Schema for all robot commands
 
 - `bv --robot-help` lists every robot command; `bv --robot-docs guide` is the full agent guide.
 - For one-off scripted recommendations: `bv --emit-script --script-limit 5` outputs a shell script for the top picks.
+
+## Project-specific context
+
+Per-project paths, stacks, and run/deploy notes live in a local `PROJECTS.md`
+(kept out of this public repo). Imported below — keep project specifics there, not
+in this file, so the core rules stay generic and portable.
+
+@PROJECTS.md
 
 @RTK.md
