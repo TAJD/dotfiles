@@ -176,9 +176,10 @@ bv --robot-schema                          # JSON Schema for all robot commands
 
 ## Project-specific context
 
-Per-project paths, stacks, and run/deploy notes live in a local `PROJECTS.md`
-(kept out of this public repo). Imported below — keep project specifics there, not
-in this file, so the core rules stay generic and portable.
+A local `PROJECTS.md` (kept out of this public repo) is a lookup index mapping each
+project name to where its repo lives on this machine. When I name a project, `cd` to
+its path and read that repo's own CLAUDE.md / README for detail — keep specifics
+there, not in this file, so the core rules stay generic and portable.
 
 @PROJECTS.md
 
