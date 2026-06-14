@@ -5,9 +5,13 @@
 #   <tab-name>   name for the new zellij tab
 #   <workdir>    Windows path to start in, e.g. C:\Users\me\repo (or C:/Users/me/repo)
 #   <prompt>     initial prompt text. AVOID embedded double-quotes (cmd.exe breaks on them).
-#   @<file>      instead of inline text, point Claude at a file to read — expands to
-#                "Read <file> in full, then carry out the work it describes." Best for
-#                long/complex prompts: write them to a file and pass @<abs-path>.
+#   @<file>      point Claude at an EXISTING file to read — expands to
+#                "Read <file> in full, then carry out the work it describes."
+#   @-           read the prompt from STDIN. The script writes it to a UNIQUE ephemeral
+#                temp file under $TMPDIR/claude-spawn (pruned after a day) and points
+#                Claude at that. PREFERRED for long/complex prompts: no fixed path to
+#                clash on parallel spawns, nothing left behind in tracked dirs. e.g.
+#                  printf '%s' "$long_prompt" | zj-claude.sh tab 'C:\dir' @-
 #
 # Why this exists / gotchas baked in (see memory: zellij-new-tabs-use-cmd):
 #   - New zellij tabs run cmd.exe, NOT bash/pwsh — so we `cd /d "..."` and submit the
@@ -34,7 +38,17 @@ prompt_arg="${3:?usage: zj-claude.sh <tab-name> <workdir> <prompt|@file>}"
 model="${MODEL:-sonnet}" # spawned sessions default to Sonnet; override with MODEL=...
 settle="${ZJ_SETTLE:-1.5}" # seconds to let a fresh cmd.exe tab become ready; bump under load
 
-if [[ "$prompt_arg" == @* ]]; then
+if [[ "$prompt_arg" == "@-" ]]; then
+  # Read the prompt from stdin into a UNIQUE ephemeral temp file, so parallel spawns
+  # never clash and nothing is left behind in tracked dirs like ~/.claude.
+  spawndir="${TMPDIR:-/tmp}/claude-spawn"
+  mkdir -p "$spawndir"
+  find "$spawndir" -type f -mtime +1 -delete 2>/dev/null || true   # prune yesterday's prompts
+  tf="$(mktemp "$spawndir/${name}-XXXXXX.md")"
+  cat > "$tf"
+  file="$(cygpath -w "$tf" 2>/dev/null || echo "$tf")"   # claude runs in cmd.exe → needs a Windows path
+  prompt="Read ${file} in full, then carry out the work it describes."
+elif [[ "$prompt_arg" == @* ]]; then
   file="${prompt_arg:1}"
   prompt="Read ${file} in full, then carry out the work it describes."
 else

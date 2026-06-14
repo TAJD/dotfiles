@@ -26,14 +26,20 @@ spec/design/artifact in front of yourself without leaving the current pane.
 ## `zj-claude.sh` — one autonomous session
 
 ```bash
-bash ~/.claude/scripts/zj-claude.sh "<tab-name>" "<workdir>" "<prompt | @prompt-file>"
-MODEL=opus bash ~/.claude/scripts/zj-claude.sh "<tab>" "<dir>" "@C:/path/to/prompt.md"
+bash ~/.claude/scripts/zj-claude.sh "<tab>" "<dir>" "<prompt>"                  # inline text
+printf '%s' "$prompt" | bash ~/.claude/scripts/zj-claude.sh "<tab>" "<dir>" @-  # via stdin (preferred)
+bash ~/.claude/scripts/zj-claude.sh "<tab>" "<dir>" "@C:/path/to/prompt.md"     # existing file
 ```
 
 Launches `claude --dangerously-skip-permissions --model sonnet` in a fresh tab,
-`cd`'d into `<workdir>`. For long/complex prompts, write them to a file and pass
-`@<abs-path>` (avoids cmd.exe quoting issues). Runs in `<workdir>` directly — no
-worktree — so use it for read-only or single-stream work.
+`cd`'d into `<workdir>`. Runs in `<workdir>` directly — no worktree — so use it for
+read-only or single-stream work.
+
+**Long/complex prompts → pipe via `@-`.** The script reads stdin into a *unique
+ephemeral* temp file under `$TMPDIR/claude-spawn` (auto-pruned after a day) and points
+Claude at it. This avoids cmd.exe quoting issues AND the old foot-gun of hand-writing a
+prompt to a fixed path like `~/.claude/foo-prompt.md` — those collide when spawns run in
+parallel and litter tracked dirs. `@<file>` still works for a file you already have.
 
 ### Windows gotchas baked in
 - **New zellij tabs are cmd.exe**, not bash/pwsh — the script `cd /d`s and submits

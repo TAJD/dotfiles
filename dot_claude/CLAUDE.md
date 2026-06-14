@@ -22,7 +22,7 @@ only when reasoning quality changes the outcome.
   whole-file rewrites I won't re-read), delegate it.
 - **Parallelize independent tasks in a single message.** Never parallelize work with shared
   state or sequential dependencies. On Windows, treat `isolation: "worktree"` as unreliable
-  — use real `bd worktree create` directories for parallel fan-out, or run sequentially.
+  — use sibling git worktrees for parallel fan-out (see `~/.claude/docs/spawning-sessions.md`), or run sequentially.
 - **Don't spawn subagents for** single file reads, one-liner edits, or work needing
   back-and-forth iteration. The setup tax exceeds the savings below ~30 lines of output.
 
@@ -48,15 +48,25 @@ for the review. Multiple files → call it once per file.
 work): use the companion helper
 
 ```bash
-bash ~/.claude/scripts/zj-claude.sh "<tab-name>" "<workdir-windows-path>" "@<abs-prompt-file>"
+printf '%s' "$continuation_prompt" | \
+  bash ~/.claude/scripts/zj-claude.sh "<tab-name>" "<workdir-windows-path>" @-
 ```
 
 It opens a cmd.exe tab, `cd /d`s into the dir, and launches
 `claude --dangerously-skip-permissions --model sonnet` (spawned sessions default
 to Sonnet; override with `MODEL=opus bash ~/.claude/scripts/zj-claude.sh ...`).
-For anything non-trivial, write the
-continuation prompt to a file and pass `@<abs-path>` (avoids cmd quoting issues).
-New zellij tabs are **cmd.exe**, not bash/pwsh — never chain with `;` there.
+For anything non-trivial, **pipe the prompt in via `@-`** — the script writes it to a
+unique ephemeral temp file under `$TMPDIR/claude-spawn`, so parallel spawns never clash
+and nothing is left behind. Do NOT hand-write prompt files into `~/.claude` or other
+tracked dirs. (`@<abs-path>` still works for a file you already have.) New zellij tabs
+are **cmd.exe**, not bash/pwsh — never chain with `;` there.
+
+**When spawning a session for a known task in the repo's project management tool:**
+post the full continuation prompt as a **comment on that task** rather than writing
+it to a local file. Pass the session the ticket URL as its entry point. This keeps
+the prompt reviewable alongside the work, avoids accidental commits of prompt files,
+and lets any agent or human resume from the ticket. The repo's CLAUDE.md identifies
+which PM tool is in use and how to add comments.
 
 **Spawning parallel workers, each in its own git worktree** (independent tasks that
 would otherwise fight over the working tree): use `spawn-claude` (`~/.local/bin/`)
@@ -119,60 +129,18 @@ cass search "X" --robot --cursor <_meta.next_cursor> --request-id run-1b
 - Exit codes: 0 ok, 2 usage error, 3 missing index, 9 unknown.
 - Prefer `--robot-format compact` or `toon` over default JSON when piping into the conversation to save tokens.
 
-## Issue Tracking (Beads)
+## Issue Tracking (Beads / bv)
 
-Projects may use **bd** (beads) for issue tracking. Look for a `.beads/` directory.
-Run `bd prime` for workflow context, or `bd onboard` for setup instructions.
+Some projects still use **bd** (beads). If a `.beads/` directory exists, run `bd prime`
+for full workflow context (`bd ready` / `bd show <id>` / `bd close <id>` /
+`bd worktree create <name>`). **rovikore-host and paca have moved to Paca — beads is
+read-only there; check the repo's own CLAUDE.md for which tracker is live.**
 
-Quick reference:
-- `bd ready` — find unblocked work
-- `bd list` — list open issues
-- `bd create "Title"` — create issue
-- `bd close <id>` — complete work
-- `bd worktree create <name>` — create worktree with beads redirect
-- `bd prime` — full workflow context
-
-## Beads Viewer (bv)
-
-`bv` is a TUI viewer and AI-agent companion for beads issue trackers. Run `bv` (no args) inside a beads-enabled repo to launch the TUI; for agent work, prefer the `--robot-*` subcommands which emit JSON/TOON.
-
-**Always pair robot output with `--format toon`** (or `BV_OUTPUT_FORMAT=toon`) for token savings, and pipe through `rtk` like any other command.
-
-### Agent-friendly commands
-
-```bash
-bv --robot-triage --format toon            # unified triage mega-command (start here)
-bv --robot-next --format toon              # single top-pick recommendation
-bv --robot-priority --format toon          # ranked priority recommendations
-bv --robot-plan --format toon              # dependency-respecting execution plan
-bv --robot-insights --format toon          # graph analysis + insights
-bv --robot-alerts --format toon            # drift + proactive alerts
-bv --robot-related <id> --format toon      # beads related to an ID
-bv --robot-blocker-chain <id> --format toon  # full blocker chain for an ID
-bv --robot-search --search "<query>" --format toon  # semantic search
-bv --agent-brief ./brief                   # export triage/insights/brief bundle to dir
-bv --robot-docs commands                   # machine-readable command reference
-bv --robot-schema                          # JSON Schema for all robot commands
-```
-
-### Recipes & filtering
-
-- `bv -r triage` (or `--recipe`) — apply a named recipe (`triage`, `actionable`, `high-impact`).
-- `--label <name>` scopes analysis to a label's subgraph; `--robot-by-label` / `--robot-by-assignee` filter outputs.
-- `--as-of <ref>` / `--diff-since <ref>` — view state at a point in time or diff against history.
-
-### When to reach for bv
-
-- Picking the next issue to work on → `--robot-next` or `--robot-triage`.
-- Understanding why an issue is stuck → `--robot-blocker-chain <id>`.
-- Sprint planning / capacity → `--robot-plan`, `--robot-capacity`, `--robot-forecast`.
-- Spotting drift, stale issues, or orphan commits → `--robot-alerts`, `--robot-orphans`.
-- Briefing a fresh agent on the project → `--agent-brief <dir>`.
-
-### Notes
-
-- `bv --robot-help` lists every robot command; `bv --robot-docs guide` is the full agent guide.
-- For one-off scripted recommendations: `bv --emit-script --script-limit 5` outputs a shell script for the top picks.
+**bv** is the TUI viewer / agent companion for beads repos. For agent use, prefer
+`--robot-*` subcommands paired with `--format toon` and piped through `rtk`. Start with
+`bv --robot-triage`; `--robot-next` (top pick), `--robot-blocker-chain <id>` (why stuck),
+`--robot-alerts` (drift), `--agent-brief <dir>` (brief a fresh agent). `bv --robot-docs guide`
+is the full reference.
 
 ## Project-specific context
 
