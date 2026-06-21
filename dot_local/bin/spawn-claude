@@ -7,15 +7,19 @@
 #   spawn-claude [options] <name> <repo-dir> <prompt...>
 #
 # Options (must precede the positional args):
-#   --here          run in <repo-dir> itself, no worktree (the old behaviour)
-#   --base <ref>    branch the worktree off <ref> (default: origin/main, else
-#                   local main/master, else current HEAD)
-#   --setup <cmd>   run <cmd> in the pane before claude (e.g. "pnpm install") —
-#                   a fresh worktree has no node_modules
-#   --model <ref>   model for the spawned session (default: sonnet). Spawned
-#                   workers default to Sonnet — these tabs do bounded, well-specified
-#                   work where Sonnet is the right tool ("Sonnet builds"). Override
-#                   per-call with --model opus, or globally with the MODEL env var.
+#   --here              run in <repo-dir> itself, no worktree (the old behaviour)
+#   --base <ref>        branch the worktree off <ref> (default: origin/main, else
+#                       local main/master, else current HEAD)
+#   --setup <cmd>       run <cmd> in the pane before claude (e.g. "pnpm install") —
+#                       a fresh worktree has no node_modules
+#   --warm-from <dir>   copy node_modules subtrees from <dir> into the worktree before
+#                       running --setup. Warm-copies every node_modules dir found at the
+#                       top two levels of <dir> so pnpm/npm installs are near-instant.
+#                       Pair with --setup "pnpm install --frozen-lockfile --prefer-offline".
+#   --model <ref>       model for the spawned session (default: sonnet). Spawned
+#                       workers default to Sonnet — these tabs do bounded, well-specified
+#                       work where Sonnet is the right tool ("Sonnet builds"). Override
+#                       per-call with --model opus, or globally with the MODEL env var.
 #
 # Default: makes a worktree at <repo-parent>/<repo>.wt/<name> on a new branch
 # wt/<name>, OUTSIDE the repo tree (so whole-tree commands don't walk it), then
@@ -28,12 +32,13 @@
 # file so no shell/KDL quoting can mangle it.
 set -euo pipefail
 
-here=0; base=""; setup=""; dry=0; model="${MODEL:-sonnet}"
+here=0; base=""; setup=""; warm_from=""; dry=0; model="${MODEL:-sonnet}"
 while [[ "${1:-}" == --* ]]; do
   case "$1" in
     --here) here=1; shift;;
     --base) base="${2:?--base needs a ref}"; shift 2;;
     --setup) setup="${2:?--setup needs a command}"; shift 2;;
+    --warm-from) warm_from="${2:?--warm-from needs a dir}"; shift 2;;
     --model) model="${2:?--model needs a ref}"; shift 2;;
     --dry-run) dry=1; shift;;
     --) shift; break;;
@@ -91,26 +96,84 @@ else
   fi
 fi
 
+# ── Warm node_modules copy ───────────────────────────────────────────────────
+# Copy every node_modules dir found at top two levels of --warm-from into the
+# equivalent location in the worktree. Saves a full pnpm/npm install — pair
+# with --setup "pnpm install --frozen-lockfile --prefer-offline".
+if [[ -n "$warm_from" && $here -eq 0 ]]; then
+  if [[ $dry -eq 1 ]]; then
+    echo "[dry-run] warm-copy node_modules from $warm_from → $workdir" >&2
+  else
+    echo "spawn-claude: warming node_modules from $warm_from" >&2
+    # top-level: <warm_from>/node_modules
+    if [[ -d "$warm_from/node_modules" ]]; then
+      cp -r "$warm_from/node_modules" "$workdir/node_modules"
+    fi
+    # one level deep: <warm_from>/*/node_modules
+    for sub in "$warm_from"/*/node_modules; do
+      [[ -d "$sub" ]] || continue
+      rel="${sub#"$warm_from/"}"          # e.g. apps/api/node_modules
+      parent_dir="$workdir/$(dirname "$rel")"
+      mkdir -p "$parent_dir"
+      cp -r "$sub" "$parent_dir/node_modules"
+    done
+    echo "spawn-claude: warm-copy done" >&2
+  fi
+fi
+
 workdir_native=$(to_native "$workdir")
-promptfile=$(mktemp --suffix=.prompt); printf '%s' "$prompt" > "$promptfile"
+# Resolve @- (stdin) and @<file> prompt sources, matching zj-claude.sh behaviour.
+spawndir="${TMPDIR:-/tmp}/claude-spawn"
+mkdir -p "$spawndir"
+find "$spawndir" -type f -mtime +1 -delete 2>/dev/null || true
+if [[ "$prompt" == "@-" ]]; then
+  promptfile="$(mktemp "$spawndir/$slug-XXXXXX.md")"
+  cat > "$promptfile"
+elif [[ "$prompt" == @* ]]; then
+  promptfile="${prompt:1}"
+else
+  promptfile="$(mktemp "$spawndir/$slug-XXXXXX.md")"
+  printf '%s' "$prompt" > "$promptfile"
+fi
 pf_native=$(to_native "$promptfile")
 pre=""; [[ -n "$setup" ]] && pre="$setup; "
 
-# IMPORTANT: include the tab-bar + status-bar plugin panes, exactly as zellij's
-# default new_tab_template does. A bare `layout { pane … }` makes a tab with NO
-# tab bar — focus lands there on attach and the whole tab strip vanishes from
-# view (the other tabs are fine, just undrawn). These two panes restore chrome.
+# IMPORTANT: mirror the user's default_tab_template chrome exactly.
+# A bare `layout { pane … }` makes a tab with NO tab bar — focus lands there
+# on attach and the whole tab strip vanishes from view. The two surrounding
+# panes restore chrome. Plugin locations must match default.kdl exactly:
+# top = zellaude, bottom = zjstatus (not the stock zellij:tab-bar/status-bar).
 layout=$(mktemp --suffix=.kdl)
 cat > "$layout" <<KDL
 layout {
     pane size=1 borderless=true {
-        plugin location="zellij:tab-bar"
+        plugin location="https://github.com/ishefi/zellaude/releases/latest/download/zellaude.wasm"
     }
     pane command="$bash_native" cwd="$workdir_native" {
         args "-lc" "${pre}claude --dangerously-skip-permissions --model $model \"\$(cat '$pf_native')\"; exec \"$bash_native\" -i"
     }
     pane size=1 borderless=true {
-        plugin location="zellij:status-bar"
+        plugin location="file:C:/Users/tajdi/AppData/Roaming/zellij/config/plugins/zjstatus.wasm" {
+            format_left   ""
+            format_center ""
+            format_right  "{datetime}"
+            format_space  ""
+            mode_normal        "#[bg=#89B4FA,fg=#1E1E2E,bold] NORMAL "
+            mode_locked        "#[bg=#F38BA8,fg=#1E1E2E,bold] LOCKED "
+            mode_pane          "#[bg=#A6E3A1,fg=#1E1E2E,bold] PANE "
+            mode_tab           "#[bg=#A6E3A1,fg=#1E1E2E,bold] TAB "
+            mode_scroll        "#[bg=#F9E2AF,fg=#1E1E2E,bold] SCROLL "
+            mode_resize        "#[bg=#FAB387,fg=#1E1E2E,bold] RESIZE "
+            mode_move          "#[bg=#CBA6F7,fg=#1E1E2E,bold] MOVE "
+            mode_search        "#[bg=#F9E2AF,fg=#1E1E2E,bold] SEARCH "
+            mode_session       "#[bg=#CBA6F7,fg=#1E1E2E,bold] SESSION "
+            mode_tmux          "#[bg=#F5C2E7,fg=#1E1E2E,bold] TMUX "
+            mode_renametab     "#[bg=#A6E3A1,fg=#1E1E2E,bold] RENAME TAB "
+            mode_renamepane    "#[bg=#A6E3A1,fg=#1E1E2E,bold] RENAME PANE "
+            datetime          "#[fg=#6C7086,bold] {format} "
+            datetime_format   "%d %b %Y  %H:%M"
+            datetime_timezone "Europe/London"
+        }
     }
 }
 KDL
