@@ -199,16 +199,6 @@
             "timeout": 5
           }
         ]
-      },
-      {
-        "matcher": "Edit|Write|MultiEdit",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "python C:/Users/tajdi/.claude/scripts/comment-limit-hook.py",
-            "timeout": 5
-          }
-        ]
       }
     ],
     "PostToolUse": [
@@ -325,7 +315,8 @@
     "stripe@claude-plugins-official": true,
     "security-guidance@claude-plugins-official": true,
     "superpowers@claude-plugins-official": true,
-    "diagram-design@diagram-design": true
+    "diagram-design@diagram-design": true,
+    "stop-writing-comments@stop-writing-comments": true
   },
   "extraKnownMarketplaces": {
     "oliver-kriska": {
@@ -350,6 +341,12 @@
       "source": {
         "source": "github",
         "repo": "cathrynlavery/diagram-design"
+      }
+    },
+    "stop-writing-comments": {
+      "source": {
+        "source": "github",
+        "repo": "TAJD/stop-writing-comments"
       }
     }
   },
