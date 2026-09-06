@@ -152,11 +152,6 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash ~/.claude/scripts/zellaude-hook.sh",
-            "timeout": 5
-          },
-          {
-            "type": "command",
             "command": "powershell -NoProfile -ExecutionPolicy Bypass -File C:/Users/tajdi/.claude/scripts/claude-awake-start.ps1",
             "timeout": 15
           },
@@ -166,11 +161,8 @@
             "timeout": 10
           }
         ]
-      }
-    ],
-    "SessionEnd": [
+      },
       {
-        "matcher": "",
         "hooks": [
           {
             "type": "command",
@@ -201,67 +193,6 @@
         ]
       },
       {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bash ~/.claude/scripts/zellaude-hook.sh",
-            "timeout": 5
-          }
-        ]
-      }
-    ],
-    "PostToolUse": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bash ~/.claude/scripts/zellaude-hook.sh",
-            "timeout": 5
-          }
-        ]
-      }
-    ],
-    "PostToolUseFailure": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bash ~/.claude/scripts/zellaude-hook.sh",
-            "timeout": 5
-          }
-        ]
-      }
-    ],
-    "UserPromptSubmit": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bash ~/.claude/scripts/zellaude-hook.sh",
-            "timeout": 5
-          }
-        ]
-      }
-    ],
-    "PermissionRequest": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bash ~/.claude/scripts/zellaude-hook.sh",
-            "timeout": 5
-          }
-        ]
-      }
-    ],
-    "Notification": [
-      {
-        "matcher": "",
         "hooks": [
           {
             "type": "command",
@@ -282,7 +213,61 @@
         ]
       },
       {
-        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ~/.claude/scripts/zellaude-hook.sh",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ~/.claude/scripts/zellaude-hook.sh",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "PostToolUseFailure": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ~/.claude/scripts/zellaude-hook.sh",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ~/.claude/scripts/zellaude-hook.sh",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "PermissionRequest": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ~/.claude/scripts/zellaude-hook.sh",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "Notification": [
+      {
         "hooks": [
           {
             "type": "command",
@@ -294,7 +279,17 @@
     ],
     "SubagentStop": [
       {
-        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ~/.claude/scripts/zellaude-hook.sh",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
         "hooks": [
           {
             "type": "command",
@@ -326,7 +321,8 @@
     "security-guidance@claude-plugins-official": true,
     "superpowers@claude-plugins-official": true,
     "diagram-design@diagram-design": true,
-    "stop-writing-comments@stop-writing-comments": true
+    "stop-writing-comments@stop-writing-comments": true,
+    "emergent-tools@emergent-tools": true
   },
   "extraKnownMarketplaces": {
     "oliver-kriska": {
@@ -357,6 +353,12 @@
       "source": {
         "source": "github",
         "repo": "TAJD/stop-writing-comments"
+      }
+    },
+    "emergent-tools": {
+      "source": {
+        "source": "github",
+        "repo": "TAJD/emergent-tools"
       }
     }
   },
