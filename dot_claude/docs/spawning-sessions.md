@@ -118,6 +118,21 @@ Closes the named zellij tab, removes the git worktree at `<repo>.wt/<name>`, and
 deletes the local `wt/<name>` branch. Refuses to delete a branch with unmerged commits
 unless `--force` is passed. `--no-tab` skips the zellij step (worktree + branch only).
 
+## `zj-fleet-status.sh` — one line per running worker
+
+```bash
+bash ~/.claude/scripts/zj-fleet-status.sh
+```
+
+`zellaude-hook.sh` already fires on every hook event; it now also upserts each
+event into a shared JSON map (keyed by pane id) at
+`~/.config/zellij/plugins/zellaude-fleet-state.json` (or the Windows AppData
+equivalent). `zj-fleet-status.sh` reads that map and prints pane, ticket slug
+(from the worktree dirname), last hook event, seconds idle, and PR state
+(`gh pr list --head wt/<slug>`, cached for 30s so a run across many panes
+doesn't hammer the GitHub API). Run it on demand in a floating pane; it's a
+plain script, not a plugin — see DEV-14.
+
 ```bash
 # Normal teardown after the session merged its branch
 bash ~/.claude/scripts/zj-worktree-close.sh projektor-access 'C:\Users\tajdi\projektor-workspace'

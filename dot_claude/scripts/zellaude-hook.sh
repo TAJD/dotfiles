@@ -90,5 +90,24 @@ if [ "$HOOK_EVENT" = "PermissionRequest" ]; then
   fi
 fi
 
-# Send to plugin (hook is already async, no need to background)
+FLEET_STATE_DIR="$HOME/.config/zellij/plugins"
+if [ ! -d "$FLEET_STATE_DIR" ] && [ -n "${APPDATA:-}" ]; then
+  WIN_PATH=$(cygpath -u "$APPDATA" 2>/dev/null || echo "")
+  [ -n "$WIN_PATH" ] && FLEET_STATE_DIR="$WIN_PATH/zellij/plugins"
+fi
+mkdir -p "$FLEET_STATE_DIR" 2>/dev/null || true
+FLEET_STATE_FILE="$FLEET_STATE_DIR/zellaude-fleet-state.json"
+LOCKDIR="$FLEET_STATE_FILE.lock"
+i=0
+until mkdir "$LOCKDIR" 2>/dev/null; do
+  i=$((i + 1))
+  [ "$i" -ge 20 ] && break
+  sleep 0.05
+done
+CURRENT="{}"
+[ -f "$FLEET_STATE_FILE" ] && CURRENT=$(cat "$FLEET_STATE_FILE" 2>/dev/null || echo "{}")
+printf '%s' "$CURRENT" | jq --argjson entry "$PAYLOAD" '.[$entry.pane_id | tostring] = $entry' > "$FLEET_STATE_FILE.tmp" 2>/dev/null \
+  && mv "$FLEET_STATE_FILE.tmp" "$FLEET_STATE_FILE"
+rmdir "$LOCKDIR" 2>/dev/null || true
+
 zellij pipe --name "zellaude" -- "$PAYLOAD"
