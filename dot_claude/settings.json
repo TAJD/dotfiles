@@ -191,6 +191,16 @@
         ]
       },
       {
+        "matcher": "Read",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python ~/.claude/hooks/read-dedup-advisory.py",
+            "timeout": 5
+          }
+        ]
+      },
+      {
         "matcher": "",
         "hooks": [
           {
@@ -304,12 +314,6 @@
     "economist-style@economist-style-plugins": true,
     "claude-md-management@claude-plugins-official": true,
     "claude-code-setup@claude-plugins-official": true,
-    "elixir-phoenix@oliver-kriska": true,
-    "mix-format@claude-code-elixir": true,
-    "mix-compile@claude-code-elixir": true,
-    "mix-credo@claude-code-elixir": true,
-    "elixir@claude-code-elixir": true,
-    "vercel@claude-plugins-official": true,
     "frontend-design@claude-plugins-official": true,
     "rust-analyzer-lsp@claude-plugins-official": true,
     "stripe@claude-plugins-official": true,
