@@ -36,20 +36,21 @@
 # No-op (exit 0) when not inside a zellij session.
 set -euo pipefail
 
-here=0; base=""; setup=""; keep_going=0
+here=0; base=""; setup=""; keep_going=0; force_shared=0
 keep_going_max="${KEEP_GOING_MAX:-40}"
 model="${MODEL:-sonnet}"
 settle="${ZJ_SETTLE:-1.5}"  # seconds for a new tab's chrome to settle before layout loads
 
 while [[ "${1:-}" == --* ]]; do
   case "$1" in
-    --here)        here=1; shift;;
-    --base)        base="${2:?--base needs a ref}"; shift 2;;
-    --setup)       setup="${2:?--setup needs a command}"; shift 2;;
-    --model)       model="${2:?--model needs a ref}"; shift 2;;
-    --keep-going)  keep_going=1; shift;;
-    --)            shift; break;;
-    *)             echo "zj-claude: unknown option $1" >&2; exit 2;;
+    --here)          here=1; shift;;
+    --base)          base="${2:?--base needs a ref}"; shift 2;;
+    --setup)         setup="${2:?--setup needs a command}"; shift 2;;
+    --model)         model="${2:?--model needs a ref}"; shift 2;;
+    --keep-going)    keep_going=1; shift;;
+    --force-shared)  force_shared=1; shift;;
+    --)              shift; break;;
+    *)               echo "zj-claude: unknown option $1" >&2; exit 2;;
   esac
 done
 
@@ -121,12 +122,37 @@ else
 fi
 
 if [[ $keep_going -eq 1 ]]; then
+  abs_launch=$(cd "$launch_dir" 2>/dev/null && pwd || printf '%s' "$launch_dir")
+  home_abs=$(cd "$HOME" && pwd)
+  shared=0
+  if [[ $here -eq 1 ]]; then
+    case "$abs_launch" in
+      "$home_abs"|"$home_abs"/.claude|"$home_abs"/.claude/*) shared=1;;
+      *.wt/*) ;;
+      *) shared=1;;
+    esac
+  fi
+  if [[ $shared -eq 1 && $force_shared -eq 0 ]]; then
+    echo "zj-claude: refusing --keep-going --here into shared directory: $abs_launch" >&2
+    echo "zj-claude: this is not a dedicated worktree — a Stop hook here would block every session run from this directory, not just this one." >&2
+    echo "zj-claude: safe alternative: drop --here so a dedicated worktree is created, or pass --force-shared if this directory truly is dedicated to this one standing-goal session." >&2
+    exit 1
+  fi
+  [[ $shared -eq 1 ]] && echo "zj-claude: WARNING — installing standing-goal Stop hook into shared directory $abs_launch (--force-shared)." >&2
+
   mkdir -p "$launch_dir/.claude"
   printf '%s' "$keep_going_max" > "$launch_dir/.claude/keep-going-max"
   settings_file="$launch_dir/.claude/settings.local.json"
   hook_entry='{"matcher":"","hooks":[{"type":"command","command":"bash ~/.claude/scripts/keep-going-hook.sh"}]}'
   if [[ -f "$settings_file" ]] && command -v jq >/dev/null 2>&1; then
-    jq --argjson entry "$hook_entry" '.hooks.Stop = ((.hooks.Stop // []) + [$entry])' "$settings_file" > "$settings_file.tmp" && mv "$settings_file.tmp" "$settings_file"
+    cp "$settings_file" "$settings_file.bak"
+    if jq --argjson entry "$hook_entry" '.hooks.Stop = ((.hooks.Stop // []) + [$entry])' "$settings_file" > "$settings_file.tmp" \
+       && jq -e . "$settings_file.tmp" >/dev/null 2>&1; then
+      mv "$settings_file.tmp" "$settings_file"
+    else
+      echo "zj-claude: --keep-going: merge into $settings_file produced invalid JSON — left original untouched, backup at $settings_file.bak" >&2
+      rm -f "$settings_file.tmp"
+    fi
   elif [[ -f "$settings_file" ]]; then
     echo "zj-claude: --keep-going: $settings_file already exists and jq is unavailable to merge, skipping hook install" >&2
   else

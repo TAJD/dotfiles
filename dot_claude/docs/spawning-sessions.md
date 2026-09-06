@@ -45,6 +45,13 @@ session. Leave `--keep-going` off for a one-shot ask that should stop at its
 natural turn boundary; the hook is opt-in per spawn, not global, because a broken
 done-when signal would otherwise loop a plain one-off task too.
 
+`--keep-going --here` refuses by default when `<dir>` is `$HOME`, `~/.claude`, or
+any path that doesn't look like a dedicated `*.wt/*` worktree — installing the
+Stop hook there would block every session run from that shared directory, not
+just the one being spawned (DEV-65). Pass `--force-shared` to override, which
+prints a loud warning and proceeds. Without `--here`, this restriction doesn't
+apply — the worktree path is always dedicated.
+
 **Long/complex prompts → pipe via `@-`.** The script reads stdin into a *unique
 ephemeral* temp file under `$TMPDIR/claude-spawn` (auto-pruned after a day) and points
 Claude at it. This avoids cmd.exe quoting issues AND the old foot-gun of hand-writing a
