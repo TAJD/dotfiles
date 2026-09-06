@@ -13,6 +13,8 @@ if [[ "$norm" != *"/.claude/projects/"* ]]; then
   exit 0
 fi
 
+[[ -e "$path" ]] && exit 0
+
 remainder=$(printf '%s' "$norm" | sed -E 's#^.*/\.claude/projects/[^/]+/##')
 
 if [[ -z "$remainder" || "$remainder" == "$norm" || -z "$cwd" ]]; then

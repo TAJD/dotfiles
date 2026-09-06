@@ -152,11 +152,6 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash ~/.claude/scripts/zellaude-hook.sh",
-            "timeout": 5
-          },
-          {
-            "type": "command",
             "command": "powershell -NoProfile -ExecutionPolicy Bypass -File C:/Users/tajdi/.claude/scripts/claude-awake-start.ps1",
             "timeout": 15
           },
@@ -166,16 +161,14 @@
             "timeout": 10
           }
         ]
-      }
-    ],
-    "SessionEnd": [
+      },
       {
-        "matcher": "",
         "hooks": [
           {
             "type": "command",
-            "command": "bash ~/.claude/scripts/zellaude-hook.sh",
-            "timeout": 5
+            "command": "${HOME}/.config/zellij/plugins/zellaude-hook.sh",
+            "timeout": 5,
+            "async": true
           }
         ]
       }
@@ -201,72 +194,12 @@
         ]
       },
       {
-        "matcher": "",
         "hooks": [
           {
             "type": "command",
-            "command": "bash ~/.claude/scripts/zellaude-hook.sh",
-            "timeout": 5
-          }
-        ]
-      }
-    ],
-    "PostToolUse": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bash ~/.claude/scripts/zellaude-hook.sh",
-            "timeout": 5
-          }
-        ]
-      }
-    ],
-    "PostToolUseFailure": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bash ~/.claude/scripts/zellaude-hook.sh",
-            "timeout": 5
-          }
-        ]
-      }
-    ],
-    "UserPromptSubmit": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bash ~/.claude/scripts/zellaude-hook.sh",
-            "timeout": 5
-          }
-        ]
-      }
-    ],
-    "PermissionRequest": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bash ~/.claude/scripts/zellaude-hook.sh",
-            "timeout": 5
-          }
-        ]
-      }
-    ],
-    "Notification": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bash ~/.claude/scripts/zellaude-hook.sh",
-            "timeout": 5
+            "command": "${HOME}/.config/zellij/plugins/zellaude-hook.sh",
+            "timeout": 5,
+            "async": true
           }
         ]
       }
@@ -282,24 +215,96 @@
         ]
       },
       {
-        "matcher": "",
         "hooks": [
           {
             "type": "command",
-            "command": "bash ~/.claude/scripts/zellaude-hook.sh",
-            "timeout": 5
+            "command": "${HOME}/.config/zellij/plugins/zellaude-hook.sh",
+            "timeout": 5,
+            "async": true
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${HOME}/.config/zellij/plugins/zellaude-hook.sh",
+            "timeout": 5,
+            "async": true
+          }
+        ]
+      }
+    ],
+    "PostToolUseFailure": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${HOME}/.config/zellij/plugins/zellaude-hook.sh",
+            "timeout": 5,
+            "async": true
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${HOME}/.config/zellij/plugins/zellaude-hook.sh",
+            "timeout": 5,
+            "async": true
+          }
+        ]
+      }
+    ],
+    "PermissionRequest": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${HOME}/.config/zellij/plugins/zellaude-hook.sh",
+            "timeout": 5,
+            "async": true
+          }
+        ]
+      }
+    ],
+    "Notification": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${HOME}/.config/zellij/plugins/zellaude-hook.sh",
+            "timeout": 5,
+            "async": true
           }
         ]
       }
     ],
     "SubagentStop": [
       {
-        "matcher": "",
         "hooks": [
           {
             "type": "command",
-            "command": "bash ~/.claude/scripts/zellaude-hook.sh",
-            "timeout": 5
+            "command": "${HOME}/.config/zellij/plugins/zellaude-hook.sh",
+            "timeout": 5,
+            "async": true
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${HOME}/.config/zellij/plugins/zellaude-hook.sh",
+            "timeout": 5,
+            "async": true
           }
         ]
       }
@@ -326,7 +331,8 @@
     "security-guidance@claude-plugins-official": true,
     "superpowers@claude-plugins-official": true,
     "diagram-design@diagram-design": true,
-    "stop-writing-comments@stop-writing-comments": true
+    "stop-writing-comments@stop-writing-comments": true,
+    "emergent-tools@emergent-tools": true
   },
   "extraKnownMarketplaces": {
     "oliver-kriska": {
@@ -357,6 +363,12 @@
       "source": {
         "source": "github",
         "repo": "TAJD/stop-writing-comments"
+      }
+    },
+    "emergent-tools": {
+      "source": {
+        "source": "github",
+        "repo": "TAJD/emergent-tools"
       }
     }
   },
