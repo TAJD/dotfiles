@@ -18,34 +18,32 @@ check() {
 
 TMP=$(mktemp -d)
 trap 'rm -rf "$TMP"' EXIT
-export HOME="$TMP/home"
-mkdir -p "$HOME"
+PROJ="$TMP/projects"
+mkdir -p "$PROJ/proj-a" "$PROJ/proj-b" "$PROJ/repo.wt~DEV-1"
+NOW=$(date -u +%Y-%m-%dT%H:%M:%S.000Z)
+NOW1=$(date -u -d '+1 second' +%Y-%m-%dT%H:%M:%S.000Z 2>/dev/null || date -u -v+1S +%Y-%m-%dT%H:%M:%S.000Z)
+STALE=$(date -u -d '@0' +%Y-%m-%dT%H:%M:%S.000Z 2>/dev/null || date -u -r 0 +%Y-%m-%dT%H:%M:%S.000Z)
 
-run_hook() {
-  ZELLIJ_SESSION_NAME=test-session ZELLIJ_PANE_ID="$1" bash -c "echo '$2' | env -u APPDATA bash zellaude-hook.sh" 2>/dev/null || true
-}
+cat > "$PROJ/proj-a/s1.jsonl" <<JSONL
+{"type":"user","timestamp":"$NOW","cwd":"/c/repo/proj-a","message":{"role":"user","content":"go"}}
+{"type":"assistant","timestamp":"$NOW1","cwd":"/c/repo/proj-a","message":{"role":"assistant","content":[{"type":"tool_use","name":"Bash"}]}}
+JSONL
 
-run_hook 1 '{"hook_event_name":"PreToolUse","session_id":"s1","tool_name":"Bash","cwd":"/c/repo.wt/DEV-1"}' >/dev/null
-run_hook 2 '{"hook_event_name":"PreToolUse","session_id":"s2","tool_name":"Edit","cwd":"/c/repo.wt/DEV-2"}' >/dev/null
+cat > "$PROJ/proj-b/s2.jsonl" <<JSONL
+{"type":"user","timestamp":"$STALE","cwd":"/c/repo/proj-b","message":{"role":"user","content":"hi"}}
+{"type":"assistant","timestamp":"$STALE","cwd":"/c/repo/proj-b","message":{"role":"assistant","content":[{"type":"text","text":"done"}]}}
+{"type":"mode","mode":"normal"}
+JSONL
 
-STATE_FILE="$HOME/.config/zellij/plugins/zellaude-fleet-state.json"
-check "state file created" "$([ -f "$STATE_FILE" ] && echo yes || echo no)" "yes"
-check "pane 1 tracked" "$(jq -r '."1".cwd' "$STATE_FILE")" "C:/repo.wt/DEV-1"
-check "pane 2 tracked" "$(jq -r '."2".hook_event' "$STATE_FILE")" "PreToolUse"
+OUT=$(ZJ_FLEET_PROJECTS_DIR="$PROJ" GH_TOKEN= bash zj-fleet-status.sh 2>&1)
+check "proj-a rendered" "$(printf '%s' "$OUT" | grep -c 'proj-a')" "1"
+check "proj-a is WORKING" "$(printf '%s' "$OUT" | awk '/proj-a/{print $3}')" "WORKING"
+check "proj-a pending tool is Bash" "$(printf '%s' "$OUT" | awk '/proj-a/{print $4}')" "Bash"
+check "proj-b is STALL (old timestamp)" "$(printf '%s' "$OUT" | awk '/proj-b/{print $3}')" "STALL"
 
-run_hook 1 '{"hook_event_name":"PostToolUse","session_id":"s1","tool_name":"Bash","cwd":"/c/repo.wt/DEV-1"}' >/dev/null
-check "pane 1 overwritten by later event" "$(jq -r '."1".hook_event' "$STATE_FILE")" "PostToolUse"
-check "pane 1 cwd unchanged by overwrite" "$(jq -r '."1".cwd' "$STATE_FILE")" "C:/repo.wt/DEV-1"
-check "pane count stable after overwrite" "$(jq 'length' "$STATE_FILE")" "2"
-
-OUT=$(HOME="$HOME" APPDATA= env -u GH_TOKEN bash zj-fleet-status.sh 2>&1)
-check "render includes pane 1 ticket slug" "$(printf '%s' "$OUT" | grep -c 'DEV-1')" "1"
-check "render includes pane 2 ticket slug" "$(printf '%s' "$OUT" | grep -c 'DEV-2')" "1"
-
-EMPTY_HOME="$TMP/empty-home"
-mkdir -p "$EMPTY_HOME"
-OUT2=$(HOME="$EMPTY_HOME" APPDATA= bash zj-fleet-status.sh; echo "exit:$?")
-check "no state file yields friendly message and exit 0" "$(printf '%s' "$OUT2" | tail -1)" "exit:0"
+EMPTY="$TMP/empty-projects"
+OUT2=$(ZJ_FLEET_PROJECTS_DIR="$EMPTY" bash zj-fleet-status.sh; echo "exit:$?")
+check "missing projects dir yields friendly message and exit 0" "$(printf '%s' "$OUT2" | tail -1)" "exit:0"
 
 echo "pass=$pass fail=$fail"
 [ "$fail" -eq 0 ]

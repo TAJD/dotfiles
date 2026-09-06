@@ -166,9 +166,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${HOME}/.config/zellij/plugins/zellaude-hook.sh",
-            "timeout": 5,
-            "async": true
+            "command": "bash ~/.claude/scripts/zellaude-hook.sh",
+            "timeout": 5
           }
         ]
       }
@@ -197,9 +196,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${HOME}/.config/zellij/plugins/zellaude-hook.sh",
-            "timeout": 5,
-            "async": true
+            "command": "bash ~/.claude/scripts/zellaude-hook.sh",
+            "timeout": 5
           }
         ]
       }
@@ -218,9 +216,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${HOME}/.config/zellij/plugins/zellaude-hook.sh",
-            "timeout": 5,
-            "async": true
+            "command": "bash ~/.claude/scripts/zellaude-hook.sh",
+            "timeout": 5
           }
         ]
       }
@@ -230,9 +227,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${HOME}/.config/zellij/plugins/zellaude-hook.sh",
-            "timeout": 5,
-            "async": true
+            "command": "bash ~/.claude/scripts/zellaude-hook.sh",
+            "timeout": 5
           }
         ]
       }
@@ -242,9 +238,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${HOME}/.config/zellij/plugins/zellaude-hook.sh",
-            "timeout": 5,
-            "async": true
+            "command": "bash ~/.claude/scripts/zellaude-hook.sh",
+            "timeout": 5
           }
         ]
       }
@@ -254,9 +249,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${HOME}/.config/zellij/plugins/zellaude-hook.sh",
-            "timeout": 5,
-            "async": true
+            "command": "bash ~/.claude/scripts/zellaude-hook.sh",
+            "timeout": 5
           }
         ]
       }
@@ -266,9 +260,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${HOME}/.config/zellij/plugins/zellaude-hook.sh",
-            "timeout": 5,
-            "async": true
+            "command": "bash ~/.claude/scripts/zellaude-hook.sh",
+            "timeout": 5
           }
         ]
       }
@@ -278,9 +271,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${HOME}/.config/zellij/plugins/zellaude-hook.sh",
-            "timeout": 5,
-            "async": true
+            "command": "bash ~/.claude/scripts/zellaude-hook.sh",
+            "timeout": 5
           }
         ]
       }
@@ -290,9 +282,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${HOME}/.config/zellij/plugins/zellaude-hook.sh",
-            "timeout": 5,
-            "async": true
+            "command": "bash ~/.claude/scripts/zellaude-hook.sh",
+            "timeout": 5
           }
         ]
       }
@@ -302,9 +293,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${HOME}/.config/zellij/plugins/zellaude-hook.sh",
-            "timeout": 5,
-            "async": true
+            "command": "bash ~/.claude/scripts/zellaude-hook.sh",
+            "timeout": 5
           }
         ]
       }
