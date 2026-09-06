@@ -268,6 +268,39 @@ rm -f "$layout"
 
 echo "zj-claude: opened tab '$name' → claude --model $model in $launch_dir"
 
+manifest_file="${CLAUDE_FLEET_MANIFEST:-$HOME/.claude/fleet/manifest.json}"
+mkdir -p "$(dirname "$manifest_file")"
+[[ -f "$manifest_file" ]] || printf '[]' > "$manifest_file"
+manifest_slug=$(printf '%s' "$launch_dir_native" | sed 's|[:/.]|-|g')
+kg_max_json="null"
+[[ $keep_going -eq 1 ]] && kg_max_json="$keep_going_max"
+manifest_record=$(jq -n \
+  --arg tab "$name" \
+  --arg worktree "$launch_dir" \
+  --arg repo_root "$workdir" \
+  --arg branch "${branch:-}" \
+  --arg model "$model" \
+  --arg brief "$promptfile" \
+  --arg spawn_ts "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+  --arg slug "$manifest_slug" \
+  --argjson keep_going_max "$kg_max_json" \
+  '{tab:$tab, worktree:$worktree, repo_root:$repo_root, branch:(if ($branch|length)>0 then $branch else null end), model:$model, brief:$brief, spawn_ts:$spawn_ts, transcript_slug:$slug, keep_going_max:$keep_going_max}')
+manifest_lock="${TMPDIR:-/tmp}/zj-manifest-lock-$(printf '%s' "$manifest_file" | tr -c 'A-Za-z0-9' '-')"
+manifest_wait=0
+until mkdir "$manifest_lock" 2>/dev/null; do
+  sleep 0.2
+  manifest_wait=$((manifest_wait + 1))
+  [[ $manifest_wait -gt 50 ]] && break
+done
+manifest_tmp="$manifest_file.tmp$$"
+if jq --argjson rec "$manifest_record" '. + [$rec]' "$manifest_file" > "$manifest_tmp" 2>/dev/null && jq -e . "$manifest_tmp" >/dev/null 2>&1; then
+  mv "$manifest_tmp" "$manifest_file"
+else
+  rm -f "$manifest_tmp"
+  echo "zj-claude: failed to append fleet manifest entry to $manifest_file" >&2
+fi
+rmdir "$manifest_lock" 2>/dev/null || true
+
 # ── Verify the session actually started ─────────────────────────────────────
 # "Tab opened" is not "session running": the process can come up and sit on a
 # prompt with the brief unsent, which looks identical from the outside. Claude

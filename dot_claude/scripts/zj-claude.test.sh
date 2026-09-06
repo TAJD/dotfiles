@@ -60,6 +60,47 @@ fi
 
 rm -rf "$fake_home" "$plainshared" "$plainshared.wt"
 
+manifest_home=$(mktemp -d)
+mkdir -p "$manifest_home/.claude"
+stub=$(mktemp -d)
+printf '#!/usr/bin/env bash\nexit 0\n' > "$stub/zellij"
+chmod +x "$stub/zellij"
+manifest="$manifest_home/manifest.json"
+
+single_wt="$manifest_home-repo.wt/single"
+mkdir -p "$single_wt"
+PATH="$stub:$PATH" HOME="$manifest_home" ZELLIJ=fake CLAUDE_FLEET_MANIFEST="$manifest" \
+  bash "$script" --here single "$single_wt" 'x' >/dev/null 2>&1
+if ! jq -e '.[0] | has("tab") and has("worktree") and has("brief") and has("spawn_ts") and has("transcript_slug") and has("keep_going_max")' "$manifest" >/dev/null 2>&1; then
+  echo "FAIL (manifest fields): expected record with tab/worktree/brief/spawn_ts/transcript_slug/keep_going_max, got: $(cat "$manifest")"; fail=1
+fi
+
+pids=()
+for i in 1 2 3 4; do
+  cwt="$manifest_home-repo.wt/concurrent$i"
+  mkdir -p "$cwt"
+  ( PATH="$stub:$PATH" HOME="$manifest_home" ZELLIJ=fake CLAUDE_FLEET_MANIFEST="$manifest" \
+    bash "$script" --keep-going --here "concurrent$i" "$cwt" 'x' >/dev/null 2>&1 ) &
+  pids+=($!)
+done
+for p in "${pids[@]}"; do wait "$p"; done
+
+if ! jq -e . "$manifest" >/dev/null 2>&1; then
+  echo "FAIL (manifest concurrency): manifest is not valid JSON after concurrent spawns"; fail=1
+fi
+count=$(jq 'length' "$manifest")
+if [[ "$count" != 5 ]]; then
+  echo "FAIL (manifest concurrency): expected 5 records (1 + 4 concurrent), got $count"; fail=1
+fi
+if [[ "$(jq '[.[] | select(.tab | startswith("concurrent"))] | length' "$manifest")" != 4 ]]; then
+  echo "FAIL (manifest concurrency): missing a concurrent spawn record"; fail=1
+fi
+if [[ "$(jq -r '.[] | select(.tab=="concurrent1") | .keep_going_max' "$manifest")" != "40" ]]; then
+  echo "FAIL (manifest keep_going_max): expected 40 for a --keep-going spawn"; fail=1
+fi
+
+rm -rf "$manifest_home" "$stub" "$manifest_home-repo.wt"
+
 if [[ $fail -eq 0 ]]; then
   echo "zj-claude.test.sh: all cases passed"
 else
