@@ -27,6 +27,11 @@
 #   Uses a KDL layout that starts a bash pane directly — no write-chars timing
 #   race. The prompt is read from a temp file via `cat`, so quoting and length
 #   are irrelevant. Claude's session is fully autonomous (--dangerously-skip-permissions).
+#   Workspace trust is pre-accepted for the launch dir (see below) — without it
+#   the trust dialog swallows the prompt's auto-submit and the session hangs.
+#   After the tab opens, the script waits for a session transcript to prove the
+#   brief was actually submitted (ZJ_VERIFY=0 skips, ZJ_VERIFY_TIMEOUT tunes).
+#   Exit 3 means the tab opened but the session never started.
 #
 # No-op (exit 0) when not inside a zellij session.
 set -euo pipefail
@@ -57,33 +62,34 @@ spawndir="${TMPDIR:-/tmp}/claude-spawn"
 mkdir -p "$spawndir"
 find "$spawndir" -type f -mtime +1 -delete 2>/dev/null || true  # prune old files
 
+# Always assemble into a fresh temp file. @file used to be passed through by
+# reference, so the closing instruction below was appended to the CALLER'S file
+# — mutating it, and stacking another copy on every re-spawn from the same file.
+promptfile="$(mktemp "$spawndir/${name}-XXXXXX.md")"
 if [[ "$prompt_arg" == "@-" ]]; then
-  tf="$(mktemp "$spawndir/${name}-XXXXXX.md")"
-  cat > "$tf"
-  promptfile="$tf"
+  cat > "$promptfile"
 elif [[ "$prompt_arg" == @* ]]; then
-  promptfile="${prompt_arg:1}"
-  if [[ $keep_going -eq 1 ]]; then
-    tf="$(mktemp "$spawndir/${name}-XXXXXX.md")"
-    cat "$promptfile" > "$tf"
-    promptfile="$tf"
-  fi
+  src="${prompt_arg:1}"
+  [[ -r "$src" ]] || { echo "zj-claude: prompt file not readable: $src" >&2; exit 1; }
+  cat "$src" > "$promptfile"
 else
-  tf="$(mktemp "$spawndir/${name}-XXXXXX.md")"
-  printf '%s' "$prompt_arg" > "$tf"
-  promptfile="$tf"
+  printf '%s' "$prompt_arg" > "$promptfile"
 fi
+
+# ── Append standard worker closing instruction ───────────────────────────────
+closing='When you have finished all the work and it passes CI: commit your changes with a descriptive message, push the branch, and open a PR.'
+grep -qF "$closing" "$promptfile" || printf '\n\n%s' "$closing" >> "$promptfile"
 
 if [[ $keep_going -eq 1 ]]; then
   {
-    printf '\n## Standing-goal loop\n'
+    printf '\n\n## Standing-goal loop\n'
     printf 'A Stop hook will block you from ending this session until the goal above is met, up to %s continuations.\n' "$keep_going_max"
     printf 'When the goal is FULLY met, create .claude/goal-done (e.g. `touch .claude/goal-done`) before your final message.\n'
     printf 'If a human needs to abort the loop early, they create .claude/goal-stop in this worktree.\n'
   } >> "$promptfile"
 fi
 
-# ── Worktree creation ────────────────────────────────────────────────────────
+# ── Worktree creation ───────────────────────────────────────────────────────────────────────────────────────────────────────────────
 if [[ $here -eq 1 ]]; then
   launch_dir="$workdir"
 else
@@ -114,7 +120,6 @@ else
   git -C "$workdir" worktree add -b "$branch" "$launch_dir" "$start" >&2
 fi
 
-# ── Path conversion (Windows/MSYS) ──────────────────────────────────────────
 if [[ $keep_going -eq 1 ]]; then
   mkdir -p "$launch_dir/.claude"
   printf '%s' "$keep_going_max" > "$launch_dir/.claude/keep-going-max"
@@ -129,10 +134,43 @@ if [[ $keep_going -eq 1 ]]; then
   fi
 fi
 
+# ── Path conversion (Windows/MSYS) ──────────────────────────────────────────
 to_native() { command -v cygpath >/dev/null && cygpath -m "$1" || printf '%s' "$1"; }
 bash_native=$(to_native "$(command -v bash)")
 launch_dir_native=$(to_native "$launch_dir")
 pf_native=$(to_native "$promptfile")
+
+# ── Pre-accept workspace trust ──────────────────────────────────────────────
+# A worktree is always a brand-new directory, so Claude Code opens on "Is this a
+# project you created or one you trust?" and waits. --dangerously-skip-permissions
+# does NOT bypass it. That dialog eats the auto-submit of the positional prompt:
+# the session comes up with the brief sitting unsent in the composer, looking
+# alive (process up, tab open) while doing nothing — and it stays stuck, because
+# the stranded draft blocks auto-submit on every relaunch too. Trust is implied
+# by the invocation: the caller is deliberately starting a skip-permissions agent
+# in this directory, and by default we created it ourselves from their own repo.
+#
+# Written via a lock + atomic rename so parallel spawns can't shred the file.
+trust_lock="${TMPDIR:-/tmp}/zj-trust-lock"
+trust_wait=0
+until mkdir "$trust_lock" 2>/dev/null; do
+  sleep 0.2
+  trust_wait=$((trust_wait + 1))
+  [[ $trust_wait -gt 50 ]] && break
+done
+node -e '
+  const fs = require("fs"), os = require("os"), path = require("path");
+  const p = path.join(os.homedir(), ".claude.json");
+  const key = process.argv[1];
+  let j = {};
+  try { j = JSON.parse(fs.readFileSync(p, "utf8")); } catch { process.exit(0); }
+  j.projects = j.projects || {};
+  j.projects[key] = Object.assign({}, j.projects[key], { hasTrustDialogAccepted: true });
+  const tmp = p + ".zjtmp" + process.pid;
+  fs.writeFileSync(tmp, JSON.stringify(j, null, 2));
+  fs.renameSync(tmp, p);
+' "$launch_dir_native" 2>/dev/null || echo "zj-claude: could not pre-accept trust for $launch_dir_native — the session may stall on the trust prompt" >&2
+rmdir "$trust_lock" 2>/dev/null || true
 
 # ── Guard: must be inside zellij ────────────────────────────────────────────
 if [ -z "${ZELLIJ:-}" ]; then
@@ -203,3 +241,28 @@ trap - EXIT
 rm -f "$layout"
 
 echo "zj-claude: opened tab '$name' → claude --model $model in $launch_dir"
+
+# ── Verify the session actually started ─────────────────────────────────────
+# "Tab opened" is not "session running": the process can come up and sit on a
+# prompt with the brief unsent, which looks identical from the outside. Claude
+# Code writes a transcript under ~/.claude/projects/<slug>/ as soon as a turn
+# begins, so its appearance is proof the brief was submitted, not just typed.
+# Set ZJ_VERIFY=0 to skip the wait.
+if [[ "${ZJ_VERIFY:-1}" != "0" ]]; then
+  slug_dir=$(printf '%s' "$launch_dir_native" | sed 's|[:/.]|-|g')
+  proj_dir="$HOME/.claude/projects/$slug_dir"
+  waited=0
+  until [[ -n "$(find "$proj_dir" -name '*.jsonl' -newermt '-5 minutes' 2>/dev/null | head -1)" ]]; do
+    sleep 2
+    waited=$((waited + 2))
+    # A --setup hook (pnpm install, mix deps.get) runs BEFORE claude, so the
+    # transcript is legitimately minutes away. Allow for it rather than crying
+    # wolf on a session that is just still installing.
+    if [[ $waited -ge ${ZJ_VERIFY_TIMEOUT:-$([[ -n "$setup" ]] && echo 900 || echo 60)} ]]; then
+      echo "zj-claude: WARNING — tab '$name' opened but no session transcript appeared in ${waited}s." >&2
+      echo "zj-claude: the brief may be sitting unsent in the composer. Switch to the tab and check." >&2
+      exit 3
+    fi
+  done
+  echo "zj-claude: session confirmed running (transcript in $proj_dir)"
+fi
