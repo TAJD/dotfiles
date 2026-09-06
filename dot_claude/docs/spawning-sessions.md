@@ -35,6 +35,16 @@ Launches `claude --dangerously-skip-permissions --model sonnet` in a fresh tab,
 `cd`'d into `<workdir>`. Runs in `<workdir>` directly — no worktree — so use it for
 read-only or single-stream work.
 
+Pass `--keep-going` for a standing/autonomous-goal prompt (e.g. "work through this
+epic and keep going"). It installs a session-scoped Stop hook
+(`keep-going-hook.sh`) in the launch dir's `.claude/settings.local.json` that
+blocks the session from stopping until it creates `.claude/goal-done`, bounded by
+`KEEP_GOING_MAX` continuations (default 40, override via env). A human aborts the
+loop early by creating `.claude/goal-stop` in that worktree — no need to kill the
+session. Leave `--keep-going` off for a one-shot ask that should stop at its
+natural turn boundary; the hook is opt-in per spawn, not global, because a broken
+done-when signal would otherwise loop a plain one-off task too.
+
 **Long/complex prompts → pipe via `@-`.** The script reads stdin into a *unique
 ephemeral* temp file under `$TMPDIR/claude-spawn` (auto-pruned after a day) and points
 Claude at it. This avoids cmd.exe quoting issues AND the old foot-gun of hand-writing a

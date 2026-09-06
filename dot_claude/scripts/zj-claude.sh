@@ -31,7 +31,8 @@
 # No-op (exit 0) when not inside a zellij session.
 set -euo pipefail
 
-here=0; base=""; setup=""
+here=0; base=""; setup=""; keep_going=0
+keep_going_max="${KEEP_GOING_MAX:-40}"
 model="${MODEL:-sonnet}"
 settle="${ZJ_SETTLE:-1.5}"  # seconds for a new tab's chrome to settle before layout loads
 
@@ -41,6 +42,7 @@ while [[ "${1:-}" == --* ]]; do
     --base)        base="${2:?--base needs a ref}"; shift 2;;
     --setup)       setup="${2:?--setup needs a command}"; shift 2;;
     --model)       model="${2:?--model needs a ref}"; shift 2;;
+    --keep-going)  keep_going=1; shift;;
     --)            shift; break;;
     *)             echo "zj-claude: unknown option $1" >&2; exit 2;;
   esac
@@ -61,10 +63,24 @@ if [[ "$prompt_arg" == "@-" ]]; then
   promptfile="$tf"
 elif [[ "$prompt_arg" == @* ]]; then
   promptfile="${prompt_arg:1}"
+  if [[ $keep_going -eq 1 ]]; then
+    tf="$(mktemp "$spawndir/${name}-XXXXXX.md")"
+    cat "$promptfile" > "$tf"
+    promptfile="$tf"
+  fi
 else
   tf="$(mktemp "$spawndir/${name}-XXXXXX.md")"
   printf '%s' "$prompt_arg" > "$tf"
   promptfile="$tf"
+fi
+
+if [[ $keep_going -eq 1 ]]; then
+  {
+    printf '\n## Standing-goal loop\n'
+    printf 'A Stop hook will block you from ending this session until the goal above is met, up to %s continuations.\n' "$keep_going_max"
+    printf 'When the goal is FULLY met, create .claude/goal-done (e.g. `touch .claude/goal-done`) before your final message.\n'
+    printf 'If a human needs to abort the loop early, they create .claude/goal-stop in this worktree.\n'
+  } >> "$promptfile"
 fi
 
 # ── Worktree creation ────────────────────────────────────────────────────────
@@ -99,6 +115,20 @@ else
 fi
 
 # ── Path conversion (Windows/MSYS) ──────────────────────────────────────────
+if [[ $keep_going -eq 1 ]]; then
+  mkdir -p "$launch_dir/.claude"
+  printf '%s' "$keep_going_max" > "$launch_dir/.claude/keep-going-max"
+  settings_file="$launch_dir/.claude/settings.local.json"
+  hook_entry='{"matcher":"","hooks":[{"type":"command","command":"bash ~/.claude/scripts/keep-going-hook.sh"}]}'
+  if [[ -f "$settings_file" ]] && command -v jq >/dev/null 2>&1; then
+    jq --argjson entry "$hook_entry" '.hooks.Stop = ((.hooks.Stop // []) + [$entry])' "$settings_file" > "$settings_file.tmp" && mv "$settings_file.tmp" "$settings_file"
+  elif [[ -f "$settings_file" ]]; then
+    echo "zj-claude: --keep-going: $settings_file already exists and jq is unavailable to merge, skipping hook install" >&2
+  else
+    printf '{"hooks":{"Stop":[%s]}}' "$hook_entry" | jq . > "$settings_file"
+  fi
+fi
+
 to_native() { command -v cygpath >/dev/null && cygpath -m "$1" || printf '%s' "$1"; }
 bash_native=$(to_native "$(command -v bash)")
 launch_dir_native=$(to_native "$launch_dir")
