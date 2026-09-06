@@ -45,12 +45,10 @@ PAYLOAD=$(jq -nc \
     ts_ms: ($ts_ms | tonumber)
   }')
 
-# Permission request: bell + desktop notification
+# Permission request: bell + OSC9 desktop notification
 if [ "$HOOK_EVENT" = "PermissionRequest" ]; then
   printf '\a' > /dev/tty 2>/dev/null || true
 
-  # Read notification setting (default: Always)
-  # Check Unix path first, then Windows AppData path
   SETTINGS_FILE="$HOME/.config/zellij/plugins/zellaude.json"
   if [ ! -f "$SETTINGS_FILE" ] && [ -n "${APPDATA:-}" ]; then
     WIN_PATH=$(cygpath -u "$APPDATA" 2>/dev/null || echo "")
@@ -62,80 +60,54 @@ if [ "$HOOK_EVENT" = "PermissionRequest" ]; then
     NOTIFY_MODE=$(jq -r '.notifications // "Always"' "$SETTINGS_FILE" 2>/dev/null)
   fi
 
-  # For "Unfocused" mode, check if the terminal app is frontmost
   SHOULD_NOTIFY=false
   case "$NOTIFY_MODE" in
     Always) SHOULD_NOTIFY=true ;;
     Unfocused)
-      TERM_FOCUSED=false
-      case "$(uname)" in
-        Darwin)
-          # Map TERM_PROGRAM to macOS process name
-          EXPECTED="${TERM_PROGRAM:-}"
-          case "$EXPECTED" in
-            Apple_Terminal) EXPECTED="Terminal" ;;
-            iTerm.app)     EXPECTED="iTerm2" ;;
-          esac
-          FRONT_APP=$(osascript -e 'tell application "System Events" to get name of first application process whose frontmost is true' 2>/dev/null)
-          [ "$FRONT_APP" = "$EXPECTED" ] && TERM_FOCUSED=true
-          ;;
-        Linux)
-          # X11: check if focused window belongs to our terminal
-          if command -v xdotool >/dev/null 2>&1; then
-            ACTIVE_PID=$(xdotool getactivewindow getwindowpid 2>/dev/null)
-            if [ -n "$ACTIVE_PID" ]; then
-              PID=$$
-              while [ "$PID" -gt 1 ] 2>/dev/null; do
-                [ "$PID" = "$ACTIVE_PID" ] && { TERM_FOCUSED=true; break; }
-                PID=$(ps -o ppid= -p "$PID" 2>/dev/null | tr -d ' ')
-              done
-            fi
-          fi
-          ;;
-      esac
-      [ "$TERM_FOCUSED" = false ] && SHOULD_NOTIFY=true
+      SHOULD_NOTIFY=true
+      WARNED="/tmp/zellaude-unfocused-unsupported-${ZELLIJ_PANE_ID}"
+      if [ ! -f "$WARNED" ]; then
+        touch "$WARNED"
+        echo "zellaude-hook: 'Unfocused' needs zellij's forwarded focus state (0.45+, not yet released); notifying Always instead (DEV-11)." >&2
+      fi
       ;;
   esac
 
   if [ "$SHOULD_NOTIFY" = true ]; then
     TOOL_SUFFIX=""
     [ -n "$TOOL_NAME" ] && TOOL_SUFFIX=" — $TOOL_NAME"
-    TITLE="⚠ Claude Code"
+    TITLE="Claude Code"
     MESSAGE="Permission requested${TOOL_SUFFIX}"
 
-    # Rate-limit: one notification per pane per 10 seconds
     LOCK="/tmp/zellaude-notify-${ZELLIJ_PANE_ID}"
     NOW=$(date +%s)
     LAST=0
     [ -f "$LOCK" ] && LAST=$(cat "$LOCK" 2>/dev/null)
     if [ $((NOW - LAST)) -ge 10 ]; then
       echo "$NOW" > "$LOCK"
-
-      # Click callback: activate terminal + focus the pane
-      ZELLIJ_BIN=$(command -v zellij)
-      FOCUS_CMD="${ZELLIJ_BIN} -s '${ZELLIJ_SESSION_NAME}' pipe --name zellaude:focus -- ${ZELLIJ_PANE_ID}"
-
-      case "$(uname)" in
-        Darwin)
-          [ -n "${TERM_PROGRAM:-}" ] && FOCUS_CMD="open -a '${TERM_PROGRAM}' && ${FOCUS_CMD}"
-          if command -v terminal-notifier >/dev/null 2>&1; then
-            terminal-notifier \
-              -title "$TITLE" \
-              -message "$MESSAGE" \
-              -execute "$FOCUS_CMD" &
-          else
-            osascript -e "display notification \"$MESSAGE\" with title \"$TITLE\"" &
-          fi
-          ;;
-        Linux)
-          if command -v notify-send >/dev/null 2>&1; then
-            notify-send "$TITLE" "$MESSAGE" &
-          fi
-          ;;
-      esac
+      printf '\033]9;%s: %s\033\\' "$TITLE" "$MESSAGE" > /dev/tty 2>/dev/null || true
     fi
   fi
 fi
 
-# Send to plugin (hook is already async, no need to background)
+FLEET_STATE_DIR="$HOME/.config/zellij/plugins"
+if [ ! -d "$FLEET_STATE_DIR" ] && [ -n "${APPDATA:-}" ]; then
+  WIN_PATH=$(cygpath -u "$APPDATA" 2>/dev/null || echo "")
+  [ -n "$WIN_PATH" ] && FLEET_STATE_DIR="$WIN_PATH/zellij/plugins"
+fi
+mkdir -p "$FLEET_STATE_DIR" 2>/dev/null || true
+FLEET_STATE_FILE="$FLEET_STATE_DIR/zellaude-fleet-state.json"
+LOCKDIR="$FLEET_STATE_FILE.lock"
+i=0
+until mkdir "$LOCKDIR" 2>/dev/null; do
+  i=$((i + 1))
+  [ "$i" -ge 20 ] && break
+  sleep 0.05
+done
+CURRENT="{}"
+[ -f "$FLEET_STATE_FILE" ] && CURRENT=$(cat "$FLEET_STATE_FILE" 2>/dev/null || echo "{}")
+printf '%s' "$CURRENT" | jq --argjson entry "$PAYLOAD" '.[$entry.pane_id | tostring] = $entry' > "$FLEET_STATE_FILE.tmp" 2>/dev/null \
+  && mv "$FLEET_STATE_FILE.tmp" "$FLEET_STATE_FILE"
+rmdir "$LOCKDIR" 2>/dev/null || true
+
 zellij pipe --name "zellaude" -- "$PAYLOAD"

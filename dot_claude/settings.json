@@ -191,6 +191,16 @@
         ]
       },
       {
+        "matcher": "Read|Edit|Write|Glob|Grep",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ~/.claude/scripts/fix-project-path-hook.sh",
+            "timeout": 5
+          }
+        ]
+      },
+      {
         "matcher": "",
         "hooks": [
           {

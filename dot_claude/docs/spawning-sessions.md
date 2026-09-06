@@ -35,6 +35,16 @@ Launches `claude --dangerously-skip-permissions --model sonnet` in a fresh tab,
 `cd`'d into `<workdir>`. Runs in `<workdir>` directly — no worktree — so use it for
 read-only or single-stream work.
 
+Pass `--keep-going` for a standing/autonomous-goal prompt (e.g. "work through this
+epic and keep going"). It installs a session-scoped Stop hook
+(`keep-going-hook.sh`) in the launch dir's `.claude/settings.local.json` that
+blocks the session from stopping until it creates `.claude/goal-done`, bounded by
+`KEEP_GOING_MAX` continuations (default 40, override via env). A human aborts the
+loop early by creating `.claude/goal-stop` in that worktree — no need to kill the
+session. Leave `--keep-going` off for a one-shot ask that should stop at its
+natural turn boundary; the hook is opt-in per spawn, not global, because a broken
+done-when signal would otherwise loop a plain one-off task too.
+
 **Long/complex prompts → pipe via `@-`.** The script reads stdin into a *unique
 ephemeral* temp file under `$TMPDIR/claude-spawn` (auto-pruned after a day) and points
 Claude at it. This avoids cmd.exe quoting issues AND the old foot-gun of hand-writing a
@@ -107,6 +117,21 @@ bash ~/.claude/scripts/zj-worktree-close.sh [--force] [--no-tab] <tab-name> <rep
 Closes the named zellij tab, removes the git worktree at `<repo>.wt/<name>`, and
 deletes the local `wt/<name>` branch. Refuses to delete a branch with unmerged commits
 unless `--force` is passed. `--no-tab` skips the zellij step (worktree + branch only).
+
+## `zj-fleet-status.sh` — one line per running worker
+
+```bash
+bash ~/.claude/scripts/zj-fleet-status.sh
+```
+
+`zellaude-hook.sh` already fires on every hook event; it now also upserts each
+event into a shared JSON map (keyed by pane id) at
+`~/.config/zellij/plugins/zellaude-fleet-state.json` (or the Windows AppData
+equivalent). `zj-fleet-status.sh` reads that map and prints pane, ticket slug
+(from the worktree dirname), last hook event, seconds idle, and PR state
+(`gh pr list --head wt/<slug>`, cached for 30s so a run across many panes
+doesn't hammer the GitHub API). Run it on demand in a floating pane; it's a
+plain script, not a plugin — see DEV-14.
 
 ```bash
 # Normal teardown after the session merged its branch
